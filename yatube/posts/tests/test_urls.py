@@ -1,5 +1,6 @@
 from django.contrib.auth import get_user_model
 from django.test import TestCase, Client
+from django.urls import reverse
 
 from posts.models import Post, Group
 
@@ -8,6 +9,7 @@ User = get_user_model()
 
 class PostURLTests(TestCase):
     """Тестируем urls."""
+
     @classmethod
     def setUpClass(cls):
         super().setUpClass()
@@ -33,27 +35,28 @@ class PostURLTests(TestCase):
 
     def test_url_exists_at_desired_location(self):
         """Проверка страниц, доступных любому пользователю."""
-        urls = {
-            '/',
-            f'/group/{self.group.slug}/',
-            f'/profile/{self.user.username}/',
-            f'/posts/{self.post.id}/',
-        }
-        for address in urls:
-            with self.subTest():
-                response = self.guest_client.get(address)
+        reverse_names = [
+            reverse('posts:index'),
+            reverse('posts:group_list', kwargs={'slug': self.group.slug}),
+            reverse('posts:profile', kwargs={'username': self.user.username}),
+            reverse('posts:post_detail', kwargs={'post_id': self.post.id})
+        ]
+        for reverse_name in reverse_names:
+            with self.subTest(reverse_name=reverse_name):
+                response = self.guest_client.get(reverse_name)
                 self.assertEqual(response.status_code, 200)
 
     def test_url_for_auth_user(self):
         """Проверка страницы создания поста, доступной
         авторизированному пользователю."""
-        response = self.authorized_client.get('/create/')
+        response = self.authorized_client.get(reverse('posts:post_create'))
         self.assertEqual(response.status_code, 200)
 
     def test_url_for_author(self):
         """Проверка страницы изменения поста, доступной
         автору поста."""
-        response = self.author_client.get(f'/posts/{self.post.id}/edit/')
+        response = self.author_client.get(reverse(
+            'posts:post_edit', kwargs={'post_id': self.post.id}))
         self.assertEqual(response.status_code, 200)
 
     def test_page_for_404(self):
@@ -63,15 +66,25 @@ class PostURLTests(TestCase):
 
     def test_urls_uses_correct_template(self):
         """URL-адрес использует соответствующий шаблон."""
-        templates_url_names = {
-            'posts/index.html': '/',
-            'posts/group_list.html': f'/group/{self.group.slug}/',
-            'posts/profile.html': f'/profile/{self.user.username}/',
-            'posts/post_detail.html': f'/posts/{self.post.id}/',
-            'posts/create_post.html': '/create/',
-            'posts/update_post.html': f'/posts/{self.post.id}/edit/',
+        templates_reverse_names = {
+            'posts/index.html': reverse('posts:index'),
+            'posts/group_list.html': reverse('posts:group_list',
+                                             kwargs={'slug': self.group.slug}),
+            'posts/profile.html': reverse(
+                'posts:profile',
+                kwargs={'username': self.user.username}
+            ),
+            'posts/post_detail.html': reverse(
+                'posts:post_detail',
+                kwargs={'post_id': self.post.id}
+            ),
+            'posts/create_post.html': reverse('posts:post_create'),
+            'posts/update_post.html': reverse(
+                'posts:post_edit',
+                kwargs={'post_id': self.post.id}
+            )
         }
-        for template, url in templates_url_names.items():
-            with self.subTest(url=url):
-                response = self.author_client.get(url)
+        for template, reverse_names in templates_reverse_names.items():
+            with self.subTest(reverse_names=reverse_names):
+                response = self.author_client.get(reverse_names)
                 self.assertTemplateUsed(response, template)

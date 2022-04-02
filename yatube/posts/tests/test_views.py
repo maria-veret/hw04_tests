@@ -3,12 +3,13 @@ from django.test import Client, TestCase
 from django.urls import reverse
 from django import forms
 
-from posts.models import Group, Post, User
+from posts.models import Post, Group
 
 User = get_user_model()
 
 
 class PostViewsTests(TestCase):
+
     @classmethod
     def setUpClass(cls):
         super().setUpClass()
@@ -29,7 +30,7 @@ class PostViewsTests(TestCase):
         self.authorized_client = Client()
         self.authorized_client.force_login(self.user)
         self.author_client = Client()
-        self.author_client.force_login(PostViewsTests.user)
+        self.author_client.force_login(self.user)
 
     def test_post_uses_correct_template(self):
         """URL-адрес использует соответствующий шаблон."""
@@ -132,6 +133,7 @@ class PostViewsTests(TestCase):
 
 
 class PaginatorViewsTest(TestCase):
+
     @classmethod
     def setUpClass(cls):
         super().setUpClass()

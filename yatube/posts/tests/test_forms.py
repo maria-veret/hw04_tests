@@ -9,6 +9,7 @@ User = get_user_model()
 
 
 class PostCreateFormTests(TestCase):
+
     @classmethod
     def setUpClass(cls):
         super().setUpClass()
