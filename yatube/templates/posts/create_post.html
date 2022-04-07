@@ -9,7 +9,7 @@
             Новый пост
           </div>
           <div class="card-body">        
-            <form method="post" action="
+            <form method="post" action =' ' enctype="multipart/form-data""
               {% if is_edit %}
                 {% url 'posts:post_edit' post_id=post.id %}
               {% else %}
@@ -26,6 +26,15 @@
                 <small id="id_text-help" class="form-text text-muted">
                   Текст нового поста
                 </small>                  
+              </div>
+              <div class="form-group row my-3 p-3">
+                <label for="id_image">
+                  Изображение                 
+                </label>
+                {{ form.image }}
+                <small id="id_text-help" class="form-text text-muted">
+                  Выберите изображение
+                </small>
               </div>            
               <div class="form-group row my-3 p-3">
                 <label for="id_group">

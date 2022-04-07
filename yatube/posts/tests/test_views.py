@@ -1,18 +1,38 @@
+import tempfile
+
 from django.contrib.auth import get_user_model
-from django.test import Client, TestCase
+from django.test import Client, TestCase, override_settings
 from django.urls import reverse
 from django import forms
+from django.conf import settings
+from django.core.files.uploadedfile import SimpleUploadedFile
 
 from posts.models import Post, Group
 
 User = get_user_model()
 
+TEMP_MEDIA_ROOT = tempfile.mkdtemp(dir=settings.BASE_DIR)
 
+
+@override_settings(MEDIA_ROOT=TEMP_MEDIA_ROOT)
 class PostViewsTests(TestCase):
 
     @classmethod
     def setUpClass(cls):
         super().setUpClass()
+        small_gif = (
+            b'\x47\x49\x46\x38\x39\x61\x02\x00'
+            b'\x01\x00\x80\x00\x00\x00\x00\x00'
+            b'\xFF\xFF\xFF\x21\xF9\x04\x00\x00'
+            b'\x00\x00\x00\x2C\x00\x00\x00\x00'
+            b'\x02\x00\x01\x00\x00\x02\x02\x0C'
+            b'\x0A\x00\x3B'
+        )
+        cls.uploaded = SimpleUploadedFile(
+            name='small.gif',
+            content=small_gif,
+            content_type='image/gif'
+        )
         cls.user = User.objects.create_user(username='Masha')
         cls.group = Group.objects.create(
             title='Тестовый заголовок',
@@ -23,6 +43,7 @@ class PostViewsTests(TestCase):
             text='Тестовый текст',
             author=cls.user,
             group=cls.group,
+            image=cls.uploaded
         )
 
     def setUp(self):
@@ -70,9 +91,11 @@ class PostViewsTests(TestCase):
                 author_0 = first_object.author
                 text_0 = first_object.text
                 group_0 = first_object.group
+                post_image_0 = first_object.image
                 self.assertEqual(author_0, self.user)
                 self.assertEqual(text_0, 'Тестовый текст')
                 self.assertEqual(group_0, self.group)
+                self.assertEqual(post_image_0, self.post.image)
 
     def test_post_detail_shows_correct_context(self):
         """Шаблон post_detail сформирован с правильным контекстом."""
@@ -82,9 +105,11 @@ class PostViewsTests(TestCase):
         text_0 = post_0.text
         author_0 = post_0.author
         group_0 = post_0.group
+        post_image_0 = post_0.image
         self.assertEqual(author_0, self.user)
         self.assertEqual(text_0, 'Тестовый текст')
         self.assertEqual(group_0, self.group)
+        self.assertEqual(post_image_0, self.post.image)
 
     def test_post_create_show_correct_context(self):
         """Шаблон post_create сформирован с правильным контекстом."""

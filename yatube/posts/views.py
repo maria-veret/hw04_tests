@@ -97,14 +97,16 @@ def post_create(request: HttpRequest) -> HttpResponse:
             'title': title,
         }
         return render(request, template, context)
-    form = PostForm(request.POST)
+    form = PostForm(
+        request.POST or None,
+        files=request.FILES or None
+    )
     if not form.is_valid():
         context = {
             'form': form,
             'title': title,
         }
         return render(request, template, context)
-    form = PostForm(request.POST)
     post = form.save(commit=False)
     post.author = request.user
     post.pub_date = datetime.now()
@@ -128,7 +130,11 @@ def post_edit(request: HttpRequest, post_id: int) -> HttpResponse:
             'title': title,
         }
         return render(request, template, context)
-    form = PostForm(request.POST, instance=post)
+    form = PostForm(
+        request.POST or None,
+        files=request.FILES or None,
+        instance=post
+    )
     if not form.is_valid():
         context = {
             'form': form,
