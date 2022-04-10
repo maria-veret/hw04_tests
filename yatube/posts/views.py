@@ -5,11 +5,13 @@ from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib.auth.decorators import login_required
 from django.http import HttpRequest, HttpResponse
 from django.conf import settings
+from django.views.decorators.cache import cache_page
 
 from .models import Post, Group, User
-from .forms import PostForm
+from .forms import PostForm, CommentForm
 
 
+@cache_page(20)
 def index(request: HttpRequest) -> HttpResponse:
     """Функция для главной страницы.
     """
@@ -70,12 +72,16 @@ def post_detail(request: HttpRequest, post_id: int) -> HttpResponse:
     """Функция для просмотра записи.
     """
     template = 'posts/post_detail.html'
-    post = get_object_or_404(Post, pk=post_id)
+    post = get_object_or_404(Post, id=post_id)
     group = post.group
     author = post.author
     count_posts = author.posts.count()
+    comments = post.comments.all()
+    form = CommentForm()
     title = f'Пост {post.text[:30]}'
     context = {
+        'form': form,
+        'comments': comments,
         'post': post,
         'group': group,
         'count_posts': count_posts,
@@ -146,4 +152,17 @@ def post_edit(request: HttpRequest, post_id: int) -> HttpResponse:
     post.author = request.user
     post.pub_date = datetime.now()
     post.save()
+    return redirect('posts:post_detail', post.id)
+
+
+@login_required
+def add_comment(request: HttpRequest,
+                post_id: int) -> HttpResponse:
+    form = CommentForm(request.POST or None)
+    post = get_object_or_404(Post, id=post_id)
+    if form.is_valid():
+        comment = form.save(commit=False)
+        comment.author = request.user
+        comment.post = post
+        comment.save()
     return redirect('posts:post_detail', post.id)

@@ -1,4 +1,5 @@
 import tempfile
+import shutil
 
 from django.contrib.auth import get_user_model
 from django.test import Client, TestCase, override_settings
@@ -6,6 +7,7 @@ from django.urls import reverse
 from django import forms
 from django.conf import settings
 from django.core.files.uploadedfile import SimpleUploadedFile
+from django.core.cache import cache
 
 from posts.models import Post, Group
 
@@ -46,12 +48,18 @@ class PostViewsTests(TestCase):
             image=cls.uploaded
         )
 
+    @classmethod
+    def tearDownClass(cls):
+        super().tearDownClass()
+        shutil.rmtree(TEMP_MEDIA_ROOT, ignore_errors=True)
+
     def setUp(self):
         self.guest_client = Client()
         self.authorized_client = Client()
         self.authorized_client.force_login(self.user)
         self.author_client = Client()
         self.author_client.force_login(self.user)
+        cache.clear()
 
     def test_post_uses_correct_template(self):
         """URL-адрес использует соответствующий шаблон."""
@@ -156,6 +164,23 @@ class PostViewsTests(TestCase):
             'posts:group_list', kwargs={'slug': self.group.slug}))
         self.assertIsNot(self.post, response.context['page_obj'])
 
+    def test_cache(self):
+        """Проверка работы кеша."""
+        post_1 = Post.objects.create(
+            text='Кэш текст',
+            author=self.user,
+            group=self.group,)
+        page_index = self.authorized_client.get(
+            reverse('posts:index')).content
+        post_1.delete()
+        page_delete = self.authorized_client.get(
+            reverse('posts:index')).content
+        self.assertEqual(page_index, page_delete)
+        cache.clear()
+        page_cache_clear = self.authorized_client.get(
+            reverse('posts:index')).content
+        self.assertNotEqual(page_index, page_cache_clear)
+
 
 class PaginatorViewsTest(TestCase):
 
@@ -175,6 +200,7 @@ class PaginatorViewsTest(TestCase):
 
     def setUp(self):
         self.guest_client = Client()
+        cache.clear()
 
     def test_paginator(self):
         """Проверка количества постов на странице."""

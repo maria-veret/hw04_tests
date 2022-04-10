@@ -1,6 +1,7 @@
 from django.contrib.auth import get_user_model
 from django.test import TestCase, Client
 from django.urls import reverse
+from django.core.cache import cache
 
 from posts.models import Post, Group
 
@@ -32,6 +33,7 @@ class PostURLTests(TestCase):
         self.authorized_client.force_login(self.user)
         self.author_client = Client()
         self.author_client.force_login(PostURLTests.user)
+        cache.clear()
 
     def test_url_exists_at_desired_location(self):
         """Проверка страниц, доступных любому пользователю."""
@@ -68,8 +70,10 @@ class PostURLTests(TestCase):
         """URL-адрес использует соответствующий шаблон."""
         templates_reverse_names = {
             'posts/index.html': reverse('posts:index'),
-            'posts/group_list.html': reverse('posts:group_list',
-                                             kwargs={'slug': self.group.slug}),
+            'posts/group_list.html': reverse(
+                'posts:group_list',
+                kwargs={'slug': self.group.slug}
+            ),
             'posts/profile.html': reverse(
                 'posts:profile',
                 kwargs={'username': self.user.username}
@@ -82,7 +86,7 @@ class PostURLTests(TestCase):
             'posts/update_post.html': reverse(
                 'posts:post_edit',
                 kwargs={'post_id': self.post.id}
-            )
+            ),
         }
         for template, reverse_names in templates_reverse_names.items():
             with self.subTest(reverse_names=reverse_names):
